@@ -1,0 +1,343 @@
+INTEGER         : /-?([1-9][0-9]*|0[Xx][0-9A-Fa-f]+|0[0-7]*)/
+DECIMAL         : /-?(([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([Ee][+-]?[0-9]+)?|[0-9]+[Ee][+-]?[0-9]+)/
+IDENTIFIER      : /[_-]*[A-Za-z][0-9A-Z_a-z-]*/
+EXT_IDENTIFIER  : /[_-]*[A-Za-z\*][0-9A-Z_a-z-\/\*]*/
+STRING          : /"[^"]*"/
+WHITESPACE      : /[\t\n\r ]+/
+COMMENT         : /\/\/.*|\/\*(.|\n)*?\*\//
+OTHER           : /[^\t\n\r 0-9A-Za-z]/
+ELLIPSIS        : /\.\.\./
+SPECIAL_COMMENT : /\*\*(.|\n)+?\*/
+CONJUNCTION_SYM : /[&\|]/
+
+string_literal : STRING
+string_literal_list : STRING ("," STRING)*
+
+identifier_list : IDENTIFIER ("," IDENTIFIER)*
+
+inheritance : ":" IDENTIFIER
+special_comments    : SPECIAL_COMMENT special_comments
+
+definitions : (special_comments? extended_attribute_list? definition)+ 
+
+definition  : callback
+            | callback_interface
+            | interface_declaration
+            | interface
+            | mixin_interface
+            | namespace
+            | partial
+            | dictionary
+            | enum
+            | typedef
+            | includes_satement
+
+partial : PARTIAL partial_definition
+
+partial_definition  : partial_interface
+                    | mixin_interface
+                    | partial_dictionary
+                    | namespace
+
+partial_interface   : INTERFACE IDENTIFIER "{" partial_interface_member* "}" ";"
+
+partial_dictionary  : DICTIONARY IDENTIFIER "{" dictionary_member* "}" ";"
+
+callback   : CALLBACK CONSTRUCTOR? IDENTIFIER "=" type "(" argument_list? ")" ";"
+
+callback_interface  : CALLBACK interface
+
+mixin_interface  : INTERFACE MIXIN IDENTIFIER "{" mixin_interface_member* "}" ";"
+
+mixin_interface_member  : extended_attribute_list? interface_member_constant
+                        | extended_attribute_list? interface_member_operation
+                        | extended_attribute_list? interface_member_attribute
+                        | extended_attribute_list? stringifier
+
+interface_declaration   : INTERFACE IDENTIFIER ";"
+
+interface  : INTERFACE IDENTIFIER inheritance? "{" interface_member* "}" ";"
+
+interface_member    : extended_attribute_list? interface_member_constant
+                    | extended_attribute_list? interface_member_operation
+                    | extended_attribute_list? interface_member_attribute
+                    | extended_attribute_list? interface_member_maplike
+                    | extended_attribute_list? interface_member_setlike
+                    | extended_attribute_list? stringifier
+                    | extended_attribute_list? iterable
+                    | extended_attribute_list? async_iterable
+                    | extended_attribute_list? constructor
+
+constructor : CONSTRUCTOR "(" argument_list? ")" ";"
+
+partial_interface_member    : extended_attribute_list? interface_member_constant
+                            | extended_attribute_list? interface_member_operation
+                            | extended_attribute_list? interface_member_attribute
+                            | extended_attribute_list? interface_member_maplike
+                            | extended_attribute_list? interface_member_setlike
+                            | extended_attribute_list? stringifier
+                            | extended_attribute_list? iterable
+                            | extended_attribute_list? async_iterable
+
+interface_member_maplike    : READONLY? MAPLIKE "<" key_type "," value_type ">" ";"
+
+interface_member_setlike    : READONLY? SETLIKE "<" value_type ">" ";"
+
+interface_member_attribute  : (STATIC | INHERIT | STRINGIFIER)? READONLY? attribute_rest
+
+interface_member_operation  : (STATIC | STRINGIFIER)? regular_operation
+                            | special_operation
+
+interface_member_constant   : CONST const_type IDENTIFIER "=" const_value ";"
+
+const_type  : primitive_type nullable
+            | IDENTIFIER nullable
+
+stringifier : STRINGIFIER ";"
+
+iterable    : ITERABLE "<" optional_key_type? value_type ">" ";"
+
+async_iterable  : ASYNC ITERABLE "<" optional_key_type? value_type ">" optional_argument_list? ";" 
+
+optional_key_type   : type_with_extended_attributes ","
+key_type    : type_with_extended_attributes
+value_type  : type_with_extended_attributes
+
+optional_argument_list  : "(" argument_list? ")"
+
+namespace   : NAMESPACE IDENTIFIER "{" namespace_member* "}" ";"
+
+namespace_member    : extended_attribute_list? regular_operation
+                    | extended_attribute_list? READONLY? attribute_rest
+                    | extended_attribute_list? namespace_member_constant
+
+namespace_member_constant       : CONST const_type IDENTIFIER "=" const_value ";"
+
+includes_satement   : IDENTIFIER INCLUDES IDENTIFIER ";"
+
+dictionary  : DICTIONARY IDENTIFIER inheritance? "{" dictionary_member* "}" ";"
+
+dictionary_member   : extended_attribute_list? REQUIRED type_with_extended_attributes IDENTIFIER default? ";"
+                    | extended_attribute_list? type IDENTIFIER default? ";"
+
+typedef : TYPEDEF type_with_extended_attributes IDENTIFIER ";"
+
+enum    : ENUM IDENTIFIER "{" enum_value_list? "}" ";"
+enum_value_list : [(STRING|INTEGER) ("," (STRING|INTEGER))* ","?]
+
+operation   : regular_operation
+            | special_operation
+
+regular_operation   : type operation_name? "(" argument_list? ")" ";"
+special_operation   : (GETTER | SETTER | DELETER | LEGACYCALLER) regular_operation
+
+operation_name  : INCLUDES
+                | IDENTIFIER
+
+attribute_rest  : ATTRIBUTE type_with_extended_attributes attribute_name ";"
+
+attribute_name  : ASYNC
+                | REQUIRED
+                | IDENTIFIER
+
+primitive_type  : unrestricted_float_type
+                | unsigned_integer_type
+                | BOOLEAN
+                | BYTE
+                | OCTET
+                | BIGINT
+                | OBJECT
+                | BYTESTRING
+                | DOMSTRING
+                | USVSTRING
+
+unrestricted_float_type : UNRESTRICTED float_type
+                        | float_type
+
+float_type  : FLOAT
+            | DOUBLE
+
+unsigned_integer_type   : UNSIGNED integer_type
+                        | integer_type
+
+integer_type    : SHORT
+                | LONG 
+                | LONG LONG
+
+STRING_TYPE : BYTESTRING
+            | DOMSTRING
+            | USVSTRING
+
+type    : single_type
+        | union_type nullable
+
+record_type : RECORD "<" type_with_extended_attributes "," type_with_extended_attributes ">"
+
+sequence_type   : SEQUENCE "<" type_with_extended_attributes ("," INTEGER)? ">" 
+forzen_array_type       : FORZENARRAY "<" type_with_extended_attributes ">" 
+observable_array_type   : OBSERVABLEARRAY "<" type_with_extended_attributes ">" 
+identifier_type : IDENTIFIER
+void_type       : VOID
+any_type        : ANY
+
+distinguishable_type    : primitive_type nullable
+                        | identifier_type nullable
+                        | sequence_type nullable
+                        | forzen_array_type nullable
+                        | observable_array_type nullable
+                        | record_type nullable
+
+promise_type    : PROMISE "<" type ">"
+
+single_type : distinguishable_type
+            | promise_type
+            | any_type
+            | void_type
+
+union_type  : "(" union_member_type (OR union_member_type)* ")"
+
+union_member_type   : extended_attribute_list? distinguishable_type
+                    | union_type nullable
+
+type_with_extended_attributes   : extended_attribute_list? type
+
+argument    : extended_attribute_list? OPTIONAL type_with_extended_attributes argument_name default?
+            | extended_attribute_list? type ELLIPSIS? argument_name
+
+argument_list   : [argument ("," argument)*]
+
+argument_name   : argument_name_keyword
+                | IDENTIFIER
+
+argument_name_keyword   : ASYNC
+                        | ATTRIBUTE
+                        | CALLBACK
+                        | CONST
+                        | CONSTRUCTOR
+                        | DELETER
+                        | DICTIONARY
+                        | ENUM
+                        | GETTER
+                        | INCLUDES
+                        | INHERIT
+                        | INTERFACE
+                        | ITERABLE
+                        | MAPLIKE
+                        | NAMESPACE
+                        | PARTIAL
+                        | REQUIRED
+                        | SETLIKE
+                        | SETTER
+                        | STATIC
+                        | STRINGIFIER
+                        | TYPEDEF
+                        | UNRESTRICTED
+
+default : "=" default_value
+
+default_value   : const_value
+                | STRING
+                | DEFAULT_SEQUENCE
+                | DEFAULT_OBJECT
+                | NULL
+
+DEFAULT_SEQUENCE    : "[" "]"
+DEFAULT_OBJECT  : "{" "}"
+
+extended_attribute_list : "[" [extended_attribute ("," extended_attribute)*] ","? "]"
+
+extended_attribute  : extended_attribute_no_args
+                    | extended_attribute_arg_list
+                    | extended_attribute_ident
+                    | extended_attribute_ident_list
+                    | extended_attribute_named_arg_list
+                    | extended_attribute_string_literal
+                    | extended_attribute_string_literal_list
+                    | extended_attribute_conjunction
+
+extended_attribute_no_args              : IDENTIFIER
+extended_attribute_arg_list             : IDENTIFIER "(" argument_list? ")"
+extended_attribute_ident                : IDENTIFIER "=" EXT_IDENTIFIER
+extended_attribute_ident_list           : IDENTIFIER "=" "(" identifier_list ")"
+extended_attribute_named_arg_list       : IDENTIFIER "=" EXT_IDENTIFIER "(" argument_list? ")"
+extended_attribute_string_literal       : IDENTIFIER "=" STRING
+extended_attribute_string_literal_list  : IDENTIFIER "=" "(" string_literal_list ")"
+extended_attribute_conjunction          : IDENTIFIER "=" EXT_IDENTIFIER CONJUNCTION_SYM EXT_IDENTIFIER
+
+ANY             : "any"
+ASYNC           : "async"
+ATTRIBUTE       : "attribute"
+BIGINT          : "bigint"
+BOOLEAN         : "boolean"
+BYTE            : "byte"
+BYTESTRING      : "ByteString"
+CALLBACK        : "callback"
+CONST           : "const"
+CONSTRUCTOR     : "constructor"
+DELETER         : "deleter"
+DICTIONARY      : "dictionary"
+DOMSTRING       : "DOMString"
+DOUBLE          : "double"
+ENUM            : "enum"
+FALSE           : "false"
+FLOAT           : "float"
+FORZENARRAY     : "FrozenArray"
+GETTER          : "getter"
+LEGACYCALLER    : "legacycaller"
+INCLUDES        : "includes"
+INFINITY        : "Infinity"
+INHERIT         : "inherit"
+INTERFACE       : "interface"
+ITERABLE        : "iterable"
+LONG            : "long"
+MAPLIKE         : "maplike"
+MIXIN           : "mixin"
+NAMESPACE       : "namespace"
+NAN             : "NaN"
+NULL            : "null"
+OBJECT          : "object"
+OBSERVABLEARRAY : "ObservableArray"
+OCTET           : "octet"
+OPTIONAL        : "optional"
+OR              : "or"
+PARTIAL         : "partial"
+PROMISE         : "Promise"
+READONLY        : "readonly"
+RECORD          : "record"
+REQUIRED        : "required"
+SEQUENCE        : "sequence"
+SETLIKE         : "setlike"
+SETTER          : "setter"
+SHORT           : "short"
+STATIC          : "static"
+STRINGIFIER     : "stringifier"
+SYMBOL          : "symbol"
+TRUE            : "true"
+TYPEDEF         : "typedef"
+UNRESTRICTED    : "unrestricted"
+UNSIGNED        : "unsigned"
+USVSTRING       : "USVString"
+VOID            : "void"
+UNDEFINED       : "undefined"
+
+QSTN            : "?"
+nullable        : QSTN?
+readonly        : READONLY
+ellipsis        : ELLIPSIS
+
+const_value : BOOLEAN_LITERAL
+            | FLOAT_LITERAL
+            | INTEGER
+
+BOOLEAN_LITERAL : TRUE
+                | FALSE
+
+FLOAT_LITERAL   : DECIMAL
+                | "-"? INFINITY
+                | NAN
+
+%import common.WS_INLINE
+%ignore WS_INLINE
+%import common.WS
+%ignore WS
+%ignore COMMENT
